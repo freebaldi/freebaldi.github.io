@@ -42,8 +42,7 @@ canvas#rc{display:block;width:100%;height:100%;image-rendering:pixelated;}
   background:rgba(200,230,255,0.95);padding:2px 7px;border:2px solid #004;display:none;}
 #money-display{position:absolute;top:78px;left:8px;color:#060;font-size:11px;font-weight:bold;
   background:rgba(200,255,200,0.95);padding:2px 7px;border:2px solid #040;display:none;}
-#detention-count{position:absolute;top:80px;left:8px;color:#700;font-size:11px;font-weight:bold;
-  background:rgba(255,200,200,0.95);padding:2px 7px;border:2px solid #c00;display:none;}
+
 #msg{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);
   background:rgba(255,255,200,0.97);border:4px solid #000;padding:8px 18px;
   font-size:14px;font-weight:bold;color:#000;text-align:center;
@@ -52,11 +51,9 @@ canvas#rc{display:block;width:100%;height:100%;image-rendering:pixelated;}
   background:rgba(255,190,220,0.97);border:5px solid #c00;padding:12px 24px;
   font-size:16px;font-weight:bold;color:#700;text-align:center;
   display:none;min-width:250px;pointer-events:none;}
-#detention-hud{border-radius:12px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:rgba(0,0,0,0.9);border:5px solid #c00;padding:18px 28px;
-  color:#fff;text-align:center;display:none;font-size:20px;z-index:10;pointer-events:none;}
-#detention-hud .det-title{color:#f55;font-size:26px;font-weight:bold;margin-bottom:6px;}
-#detention-timer{font-size:40px;font-weight:bold;color:#ff8;}
+
+
+
 #rope-pips{font-size:24px;letter-spacing:3px;margin-top:5px;}
 #items{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
 .slot{width:50px;height:50px;background:rgba(255,252,210,0.97);border:3px solid #8a4a00;
@@ -208,7 +205,6 @@ canvas#rc{display:block;width:100%;height:100%;image-rendering:pixelated;}
     <div id="ytp-display">⭐ YTP: 0</div>
     <div id="money-display">💵 $0</div>
     <div id="quarters-display" style="position:absolute;top:92px;left:8px;color:#b8860b;font-size:11px;font-weight:bold;text-shadow:0 1px 2px #000;display:none;">🪙 0 quarters</div>
-    <div id="detention-count"></div>
     <canvas id="minimap" width="130" height="130"></canvas>
     <div id="stamina-wrap">
       <div id="stamina-label">ENERGY</div>
@@ -218,13 +214,15 @@ canvas#rc{display:block;width:100%;height:100%;image-rendering:pixelated;}
     <div id="event-banner"></div>
     <div id="exit-warning">🚨 An exit has been sealed!</div>
     <div id="mode-badge">♾️ ENDLESS MODE</div>
+    <!-- detention elements kept hidden for JS compatibility -->
+    <div id="detention-hud" style="display:none;"></div>
+    <div id="detention-timer" style="display:none;"></div>
+    <div id="detention-count" style="display:none;"></div>
     <div id="rope-hud">
       🎀 Playtime: "Jump with me!"<br>Press <b>SPACE</b> to jump!
       <div id="rope-pips"></div>
       <div style="font-size:10px;margin-top:3px;">(F+scissors = cut rope)</div>
     </div>
-    <div id="detention-hud">
-      <div class="det-title">📋 DETENTION</div>
       <div id="detention-timer">60</div>
       <div style="font-size:13px;margin-top:4px;">seconds remaining</div>
     </div>
@@ -634,7 +632,7 @@ function makeFloor1(){
   // ── SOUTH ROOMS (north wall=y=21 → door into hall y=20) ─────────────
   room(1,21,10,31);  m[21][5]=9;   // Class 5
   room(12,21,22,31); m[21][17]=9;  // Class 6
-  room(27,21,37,31); m[21][32]=9;  // Faculty 1
+  room(27,21,37,31); m[21][32]=9;  // Class 9 (Library)
   room(39,21,48,31); m[21][43]=9;  // Principal's Office (no notebook)
 
   // ── DEEPER SOUTH ────────────────────────────────────────────────────
@@ -644,22 +642,20 @@ function makeFloor1(){
   // Class 8 — south of Class 6
   room(12,33,22,43); fill(15,31,17,32,0); m[33][17]=9;
 
-  // ── FACULTY ROOMS 2 & 3 — side by side, each has TWO doors to hallways ──
-  // Faculty 2: x=27..36, y=33..43 — door to south spur AND door south to bottom hall
+  // ── ART ROOM & MUSIC ROOM — south section ──
+  // Art Room: x=27..36, y=33..43
   room(27,33,36,43);
   fill(30,31,32,32,0); m[33][31]=9;   // north door (from south spur corridor)
   // Short south corridor to bottom of map open area
   fill(30,43,32,46,0); m[43][31]=9;   // south door
 
-  // Faculty 3: x=27..36, y=45..49 (small, off Faculty 2 south door)
+  // Music Room: x=27..36, y=45..49
   room(27,45,36,49);
-  // Faculty 3 has north door (from Faculty 2 south corridor) — already open via fill above
-  // Faculty 3 also connects west to vertical hall
+  // Music Room north door (from Art Room south corridor)
+  // Music Room also connects west to vertical hall
   fill(25,47,27,47,0); m[47][26]=10;  // west door into vertical hall
 
-  // ── FACULTY 4 — small room off the east vertical hall ──
-  // x=26..36, y=8..16 — between V-hall and Class 3, north section east side
-  // Access: east wall of V-hall at x=26, y~12
+  // ── COUNSELOR'S OFFICE — small room off the east vertical hall ──
   room(26,8,36,16);
   fill(26,12,27,12,0); m[12][26]=10;  // west door into V-hall
 
@@ -668,8 +664,7 @@ function makeFloor1(){
   fill(42,31,44,32,0);
   m[33][42]=9; m[33][43]=9;           // north double-door entrance
 
-  // Playground — outdoor south
-  fill(27,45,36,48,0); fill(27,45,36,48,44); // grass (overlaps F3 south, that's fine)
+  // Playground removed — area stays as walls
 
   // ── HALLWAY SECURITY DOUBLE DOORS ───────────────────────────────────
   m[19][10]=11; m[20][10]=11;   // west double door (locked until 2 notebooks)
@@ -723,7 +718,11 @@ function makeFloor1(){
   m[35][16]=40; m[35][17]=40;
   for(let r=0;r<2;r++) for(let c=0;c<2;c++){m[37+r*3][13+c*3]=40; m[38+r*3][13+c*3]=41;}
 
-  // Principal's Office  interior x=40..47, y=22..30  (no notebook — detention chairs only)
+  // Library (former Faculty 1) interior x=28..36, y=22..30 — tables and chairs
+  m[23][30]=40; m[23][31]=40; m[23][32]=40;   // reading tables
+  for(let r=0;r<2;r++) for(let c=0;c<2;c++){m[25+r*2][29+c*3]=40; m[26+r*2][29+c*3]=41;}
+
+  // Principal's Office  interior x=40..47, y=22..30  (no notebook)
   m[23][42]=40; m[23][43]=40; m[23][44]=40; // principal desk
   for(let r=0;r<2;r++) for(let c=0;c<3;c++) m[26+r*2][40+c*2]=41; // detention chairs
 
@@ -759,22 +758,34 @@ let sealedCount=0;
 const _doorAnims={}; // key="x_y" -> {t:0,open:true}
 function triggerDoorAnim(x,y){
   const k=`${x}_${y}`;
-  if(!_doorAnims[k])_doorAnims[k]={t:0};
-  _doorAnims[k].t=0.6; // seconds of animation
-  // Door creak sound
+  _doorAnims[k]={t:0, maxT:0.55, phase:'opening'}; // fresh animation
+  // Door creak sound — wooden thud
+  const now=AC.currentTime;
   const o1=AC.createOscillator(),g1=AC.createGain();
-  o1.type='sawtooth';o1.frequency.setValueAtTime(180,AC.currentTime);
-  o1.frequency.exponentialRampToValueAtTime(120,AC.currentTime+0.18);
-  g1.gain.setValueAtTime(0.06,AC.currentTime);g1.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.22);
-  o1.connect(g1);g1.connect(AC.destination);o1.start();o1.stop(AC.currentTime+0.25);
-  const o2=AC.createOscillator(),g2=AC.createGain();
-  o2.type='triangle';o2.frequency.setValueAtTime(90,AC.currentTime+0.05);
-  o2.frequency.exponentialRampToValueAtTime(70,AC.currentTime+0.25);
-  g2.gain.setValueAtTime(0.04,AC.currentTime+0.05);g2.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+0.3);
-  o2.connect(g2);g2.connect(AC.destination);o2.start(AC.currentTime+0.05);o2.stop(AC.currentTime+0.35);
+  o1.type='triangle';o1.frequency.setValueAtTime(260,now);
+  o1.frequency.exponentialRampToValueAtTime(80,now+0.22);
+  g1.gain.setValueAtTime(0.09,now);
+  g1.gain.exponentialRampToValueAtTime(0.001,now+0.28);
+  o1.connect(g1);g1.connect(AC.destination);o1.start(now);o1.stop(now+0.3);
+  // Click sound
+  playTone(700,'square',0.04,0.05,0.01);
 }
 function tickDoorAnims(dt){
-  for(const k in _doorAnims){_doorAnims[k].t=Math.max(0,_doorAnims[k].t-dt);}
+  for(const k in _doorAnims){
+    const da=_doorAnims[k];
+    da.t=Math.min(da.maxT||0.55, da.t+dt);
+  }
+}
+function getDoorSwing(x,y){
+  // Returns 0..1 — 0=closed, 1=fully open, then swings back
+  const k=`${x}_${y}`;
+  if(!_doorAnims[k])return 0;
+  const da=_doorAnims[k];
+  const prog=da.t/(da.maxT||0.55);
+  // Fast open (0→0.4s), hold (0.4→0.5), then snap closed (0.5→1)
+  if(prog<0.65) return Math.min(1, prog/0.65); // ease-in open
+  if(prog<0.85) return 1; // hold open
+  return 1-(prog-0.85)/0.15; // snap closed
 }
 
 function buildMap(floorIdx){
@@ -797,32 +808,15 @@ function buildMap(floorIdx){
     {wx:14,wy:35,type:'abc'},{wx:19,wy:35,type:'smiley'},     // Class 8
     {wx:40,wy:35,type:'lunch'},{wx:45,wy:37,type:'smiley'},   // Cafeteria
     {wx:8,wy:19,type:'heart'},{wx:22,wy:23,type:'numbers'},   // Hallway spots
+    {wx:30,wy:23,type:'star'},{wx:34,wy:23,type:'flower'},      // Library (former Fac 1)
+    {wx:30,wy:35,type:'abc'},{wx:34,wy:37,type:'smiley'},       // Art Room
   ];
   for(const d of _drawingSpots) worldDrawings.push(d);
   // Faculty room signs — placed inside each faculty room near the door
-  worldDrawings.push({wx:28,wy:22,type:'faculty_sign'});  // Faculty 1
-  worldDrawings.push({wx:28,wy:34,type:'faculty_sign'});  // Faculty 2
-  worldDrawings.push({wx:28,wy:46,type:'faculty_sign'});  // Faculty 3
-  worldDrawings.push({wx:27,wy:9, type:'faculty_sign'});  // Faculty 4
-  // ── ROOM SIGNS near classroom doors (in hallway, next to door) ──────
-  worldDrawings.push({wx:5,wy:18,type:'class1_sign'});    // Class 1 door hall side
-  worldDrawings.push({wx:17,wy:18,type:'class2_sign'});   // Class 2
-  worldDrawings.push({wx:32,wy:18,type:'class3_sign'});   // Class 3 (Mrs. Pomp)
-  worldDrawings.push({wx:43,wy:18,type:'class4_sign'});   // Class 4
-  worldDrawings.push({wx:5,wy:21,type:'class5_sign'});    // Class 5
-  worldDrawings.push({wx:17,wy:21,type:'class6_sign'});   // Class 6
-  worldDrawings.push({wx:5,wy:33,type:'class7_sign'});    // Class 7
-  worldDrawings.push({wx:17,wy:33,type:'class8_sign'});   // Class 8
-  worldDrawings.push({wx:43,wy:21,type:'principals_sign'}); // Principal's Office
-  worldDrawings.push({wx:42,wy:33,type:'cafeteria_sign'}); // Cafeteria entrance
-  // Exit signs near each exit
-  worldDrawings.push({wx:2,wy:19,type:'exit_sign'});
-  worldDrawings.push({wx:47,wy:19,type:'exit_sign'});
   // Faculty 2 mystery boxes (x=28..35, y=34..42) — added here so they persist on rebuild
   // Mystery boxes in Faculty 2 interior (x=28..35, y=34..42)
   for(const [bx,by] of [[29,35],[31,35],[33,36],[30,37],[32,38],[29,39],[33,40],[31,41],[30,40],[32,39]])
     worldDrawings.push({wx:bx,wy:by,type:'box',floor:true});
-  worldDrawings.push({wx:31,wy:38,type:'cult_note',floor:true});
   // ALL prop tiles become billboard sprites — tile cleared to OPEN so raycaster sees through them
   // Solid props (trees, vending) keep a propCollision entry for isWall checks
   const ALL_PROPS=new Set([T.DESK,T.CHAIR,T.CAFTABLE,T.BENCH,T.HOOP,T.TREE,T.APPLE_TREE,T.VEND]);
@@ -853,7 +847,7 @@ function isPassable(x,y){
   const t=tileAt(x,y);
   const tileOk=t===T.OPEN||t===T.EXIT||t===T.DOOR_H||t===T.DOOR_V||
          t===T.DDOOR_H||t===T.DDOOR_V||t===T.STAIR_U||t===T.STAIR_D||
-         t===T.GRASS; // lockers (LOCK_R/B/G) intentionally excluded — solid walls
+         false; // lockers (LOCK_R/B/G) intentionally excluded — solid walls
   return tileOk&&!isPropBlocked(x,y);
 }
 function isWall(x,y){return !isPassable(x,y);}
@@ -2414,25 +2408,6 @@ let detentionInterval=null;
 const DETENTION_ROOM={x1:39,y1:21,x2:48,y2:31,spawnX:43,spawnY:26};
 let _detentionLocked=false; // player cannot leave office until timer ends
 
-
-// Faculty room trespass check
-function checkFacultyTrespass(){
-  const px=player.x,py=player.y;
-  const inFaculty1=(px>=28&&px<=36&&py>=22&&py<=30);   // Faculty 1
-  const inFaculty2=(px>=28&&px<=35&&py>=34&&py<=42);   // Faculty 2
-  const inFaculty3=(px>=28&&px<=35&&py>=46&&py<=48);   // Faculty 3
-  const inFaculty4=(px>=27&&px<=35&&py>=9&&py<=15);    // Faculty 4
-  if(!(inFaculty1||inFaculty2||inFaculty3||inFaculty4)) return;
-  const principal=chars.find(c=>c.id==='principal');
-  if(!principal||principal.detainCooldown>0) return;
-  const dist=Math.hypot(principal.x-px,principal.y-py);
-  if(dist<12&&!player.inLocker&&player.detained<=0){
-    triggerDetention(15,'Principal: "FACULTY ROOMS ARE RESTRICTED! DETENTION!"');
-    principal.detainCooldown=30;
-    principal._chasing=false;
-    showMsg("You were not supposed to be in there!",3000);
-  }
-}
 function triggerDetention(seconds,message){
   if(player.detained>0)return;
   // Interrupt Playtime if she was roping — she'll cry
@@ -2441,20 +2416,19 @@ function triggerDetention(seconds,message){
   SFX.detention();
   player.detained=seconds;player.detentionCount++;
   showMsg(message,3500);
-  document.getElementById('detention-count').style.display='block';
-  document.getElementById('detention-count').textContent=`⛓️ Detentions: ${player.detentionCount}${player.detentionCount>=3?' ⚠️':''}`;
+  /* detention-count removed */ if(false)document.getElementById('x').textContent=`⛓️ Detentions: ${player.detentionCount}${player.detentionCount>=3?' ⚠️':''}`;
   // Teleport player into principal's office
   player.x=DETENTION_ROOM.spawnX;player.y=DETENTION_ROOM.spawnY;
   _detentionLocked=true;
   const hudEl=document.getElementById('detention-hud'),timerEl=document.getElementById('detention-timer');
-  hudEl.style.display='block';
+  if(hudEl)hudEl.style.display='block';
   if(detentionInterval)clearInterval(detentionInterval);
-  let rem=Math.ceil(seconds); timerEl.textContent=rem;
+  let rem=Math.ceil(seconds); if(timerEl)timerEl.textContent=rem;
   detentionInterval=setInterval(()=>{
-    rem--;timerEl.textContent=rem;
+    rem--;if(timerEl)timerEl.textContent=rem;
     if(rem<=0){
       clearInterval(detentionInterval);detentionInterval=null;
-      hudEl.style.display='none';
+      if(hudEl)hudEl.style.display='none';
       _detentionLocked=false;player.detained=0;
       showMsg('🚪 Detention over! You\'re free to go.',2000);
     }
@@ -2463,10 +2437,10 @@ function triggerDetention(seconds,message){
 
 function showDetentionHUD(seconds){
   const hudEl=document.getElementById('detention-hud'),timerEl=document.getElementById('detention-timer');
-  hudEl.style.display='block';
-  let rem=Math.ceil(seconds);timerEl.textContent=rem;
+  if(hudEl)hudEl.style.display='block';
+  let rem=Math.ceil(seconds);if(timerEl)timerEl.textContent=rem;
   if(detentionInterval)clearInterval(detentionInterval);
-  detentionInterval=setInterval(()=>{rem--;timerEl.textContent=rem;if(rem<=0){clearInterval(detentionInterval);detentionInterval=null;hudEl.style.display='none';}},1000);
+  detentionInterval=setInterval(()=>{rem--;if(timerEl)timerEl.textContent=rem;if(rem<=0){clearInterval(detentionInterval);detentionInterval=null;if(hudEl)hudEl.style.display='none';}},1000);
 }
 function updateDetentionHUD(seconds){
   const timerEl=document.getElementById('detention-timer');
@@ -2474,7 +2448,7 @@ function updateDetentionHUD(seconds){
 }
 function hideDetentionHUD(){
   if(detentionInterval){clearInterval(detentionInterval);detentionInterval=null;}
-  document.getElementById('detention-hud').style.display='none';
+  const _dh=document.getElementById('detention-hud');if(_dh)_dh.style.display='none';
 }
 const STORE_ITEMS=[
   {id:'bsoda',icon:'🥤',name:'BSoda x2',desc:'Pushes away characters',costYTP:10,costMoney:3,apply(){giveItem({type:'bsoda',icon:'🥤',name:'BSoda'});giveItem({type:'bsoda',icon:'🥤',name:'BSoda'});}},
@@ -3249,17 +3223,6 @@ function drawWallDrawing(ctx,w,h,type){
     ctx.fillStyle='#008800';ctx.font=`${w*.18|0}px "Comic Sans MS",cursive`;
     ctx.fillText('Mystery',cx,cy+h*.22);
     ctx.fillText('Casserole',cx,cy+h*.36);
-  } else if(type==='faculty_sign'){
-    ctx.fillStyle='#aa2200';
-    ctx.beginPath();ctx.roundRect(w*.05,h*.15,w*.9,h*.7,w*.05);ctx.fill();
-    ctx.strokeStyle='#ff8800';ctx.lineWidth=Math.max(1,w*.04);
-    ctx.beginPath();ctx.roundRect(w*.05,h*.15,w*.9,h*.7,w*.05);ctx.stroke();
-    ctx.fillStyle='#ffee00';ctx.font=`bold ${w*.2|0}px "Comic Sans MS",cursive`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('FACULTY',cx,cy-h*.08);
-    ctx.fillText('ONLY',cx,cy+h*.12);
-    ctx.font=`${w*.16|0}px serif`;ctx.fillStyle='#ffaa00';
-    ctx.fillText('⚠',cx,cy+h*.35);
   } else if(type==='class_sign'){
     // Classroom door sign — green background
     ctx.fillStyle='#1a6e2a';
@@ -3271,21 +3234,6 @@ function drawWallDrawing(ctx,w,h,type){
     ctx.fillText('CLASS',cx,cy-h*.12);
     ctx.fillStyle='#c8ff90';ctx.font=`bold ${w*.3|0}px "Comic Sans MS",cursive`;
     ctx.fillText(type.slice(-1)||'?',cx,cy+h*.1); // last char = number
-  } else if(type==='class1_sign'||type==='class2_sign'||type==='class3_sign'||
-             type==='class4_sign'||type==='class5_sign'||type==='class6_sign'||
-             type==='class7_sign'||type==='class8_sign'){
-    const num=type.replace('class','').replace('_sign','');
-    ctx.fillStyle='#1a6e2a';
-    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.fill();
-    ctx.strokeStyle='#8fdf8f';ctx.lineWidth=Math.max(1.5,w*.035);
-    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font=`bold ${w*.15|0}px "Comic Sans MS",cursive`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('CLASSROOM',cx,cy-h*.18);
-    ctx.fillStyle='#c8ff90';ctx.font=`900 ${w*.38|0}px "Comic Sans MS",cursive`;
-    ctx.fillText(num,cx,cy+h*.08);
-    ctx.fillStyle='rgba(255,255,200,0.6)';ctx.font=`${w*.11|0}px "Comic Sans MS",cursive`;
-    ctx.fillText('📓 NOTEBOOK INSIDE',cx,cy+h*.34);
   } else if(type==='principals_sign'){
     ctx.fillStyle='#1a1a6e';
     ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.fill();
@@ -3299,18 +3247,6 @@ function drawWallDrawing(ctx,w,h,type){
     ctx.fillText('🚨',cx,cy+h*.28);
     ctx.fillStyle='rgba(255,200,200,0.8)';ctx.font=`${w*.11|0}px "Comic Sans MS",cursive`;
     ctx.fillText('NO RUNNING!',cx,cy+h*.42);
-  } else if(type==='cafeteria_sign'){
-    ctx.fillStyle='#7a4a00';
-    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.fill();
-    ctx.strokeStyle='#ffcc00';ctx.lineWidth=Math.max(1.5,w*.035);
-    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.stroke();
-    ctx.fillStyle='#ffe066';ctx.font=`bold ${w*.17|0}px "Comic Sans MS",cursive`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('CAFETERIA',cx,cy-h*.15);
-    ctx.font=`${w*.22|0}px serif`;
-    ctx.fillText('🍽',cx,cy+h*.1);
-    ctx.fillStyle='rgba(255,240,160,0.7)';ctx.font=`${w*.1|0}px "Comic Sans MS",cursive`;
-    ctx.fillText('Lunch: 12–1pm',cx,cy+h*.36);
   } else if(type==='gym_sign'){
     ctx.fillStyle='#1a4a7a';
     ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.07);ctx.fill();
@@ -3323,15 +3259,6 @@ function drawWallDrawing(ctx,w,h,type){
     ctx.fillText('🏀',cx,cy+h*.1);
     ctx.fillStyle='rgba(200,230,255,0.7)';ctx.font=`${w*.1|0}px "Comic Sans MS",cursive`;
     ctx.fillText('P.E. classes here',cx,cy+h*.36);
-  } else if(type==='exit_sign'){
-    ctx.fillStyle='#003300';
-    ctx.beginPath();ctx.roundRect(w*.04,h*.2,w*.92,h*.65,w*.06);ctx.fill();
-    ctx.strokeStyle='#00ff44';ctx.lineWidth=Math.max(1.5,w*.04);
-    ctx.beginPath();ctx.roundRect(w*.04,h*.2,w*.92,h*.65,w*.06);ctx.stroke();
-    ctx.fillStyle='#00ff44';ctx.font=`900 ${w*.22|0}px "Comic Sans MS",cursive`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('EXIT',cx,cy-h*.04);
-    ctx.font=`${w*.18|0}px serif`;ctx.fillText('→',cx,cy+h*.2);
   }
   ctx.restore();
 }
@@ -4267,15 +4194,21 @@ function triggerJumpscare(name){
 // ─── PAUSE ───
 let gamePaused=false;
 function pauseGame(){
+  stopAllMusic();
   if(!gameRunning&&!gamePaused)return;
   gamePaused=true;gameRunning=false;
+  stopAllMusic();
   document.getElementById('pause-screen').style.display='flex';
   document.getElementById('relock-overlay').style.display='none';
   document.exitPointerLock&&document.exitPointerLock();
 }
 function resumeGame(){
+  // Restart music on resume
+  if(darkMode){playBossAmbient();} else if(_entitiesActive){/* ambient already stopped */}
   if(!gamePaused)return;
   gamePaused=false;gameRunning=true;
+  // Restart music if not in dark mode
+  if(!darkMode&&!endlessMode) playBossAmbient();
   document.getElementById('pause-screen').style.display='none';
   document.getElementById('relock-overlay').style.display='none';
   lastTime=performance.now();
@@ -4524,7 +4457,7 @@ function useItem(){
       if(detentionInterval){clearInterval(detentionInterval);detentionInterval=null;}
       _detentionLocked=false;
       player.detained=0;
-      document.getElementById('detention-hud').style.display='none';
+      const _dh=document.getElementById('detention-hud');if(_dh)_dh.style.display='none';
       player.items[player.selectedSlot]=null;updateItemHUD();
       playTone(880,'sine',0.1,0.15);playTone(1100,'sine',0.08,0.12,0.1);
       showMsg('🗝️ You used the Principal\'s Key — detention cut short!',2500);
@@ -6276,39 +6209,8 @@ function renderSceneInner(vx,vy,va,darkened){
     for(let x=0;x<RW;x++){
       const i=(y*RW+x)*4;
       if(darkened){
-        // Galaxy skybox: deep purple-blue nebula + stars
-        const gx=fx*0.22+_galT*0.012, gy=fy_*0.22;
-        // Nebula bands
-        const neb1=Math.sin(gx*1.4+gy*0.8)*Math.cos(gx*0.6-gy*1.3)*0.5+0.5;
-        const neb2=Math.sin(gx*2.9+gy*2.1+1.7)*Math.cos(gx*1.8+gy*2.6)*0.5+0.5;
-        const nebula=(neb1*0.65+neb2*0.35);
-        // Deep space base
-        const baseR=4+nebula*35|0;
-        const baseG=2+nebula*12|0;
-        const baseB=18+nebula*55|0;
-        // Stars: hash-based for stability, no flicker on movement
-        const sx=(fx*120+fy_*173)|0, sy=(fx*211-fy_*97)|0;
-        const hash=((sx*2654435761^sy*2246822519)>>>0)%10000;
-        if(hash<55){
-          // Star brightness — large hash spread = sparse stars
-          const sbr=0.55+((hash*137)%100)/100*0.45;
-          const twinkle=0.75+Math.sin(_galT*3.1+(hash%17)*0.7)*0.25;
-          const sv=Math.min(255,sbr*twinkle*255)|0;
-          // Tint: mostly white, some blue/gold stars
-          const tintKind=hash%4;
-          d[i]  =tintKind===2?sv:Math.min(255,sv*0.85)|0;
-          d[i+1]=tintKind===3?Math.min(255,sv*0.7)|0:Math.min(255,sv*0.9)|0;
-          d[i+2]=tintKind===2?Math.min(255,sv*0.7)|0:sv;
-        } else {
-          d[i]=baseR;d[i+1]=baseG;d[i+2]=baseB;
-        }
-        // Milky Way band — brighten nebula stripe
-        const mwBand=Math.max(0,1-Math.abs(Math.sin(gx*0.3+gy*0.5+1.0)*2.8));
-        if(mwBand>0){
-          d[i]=Math.min(255,d[i]+mwBand*18)|0;
-          d[i+1]=Math.min(255,d[i+1]+mwBand*10)|0;
-          d[i+2]=Math.min(255,d[i+2]+mwBand*30)|0;
-        }
+        // Dark ceiling — plain deep black with subtle blue-gray
+        d[i]=3; d[i+1]=3; d[i+2]=8;
       } else {
         const tx=Math.floor(fx),ty=Math.floor(fy_);
         const isLight=(tx%6===2&&ty%6===2)||(tx%6===5&&ty%6===5);
@@ -7043,6 +6945,14 @@ function makeDarkIT(){return{
 // ═══════════════════════════════════════════════════════════════════
 //  GAME LOOP
 // ═══════════════════════════════════════════════════════════════════
+
+// Keep game loop alive when tab regains focus
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && gameRunning && !gamePaused) {
+    lastTime = performance.now(); // reset dt to avoid giant jump
+    if(!gameLoopRaf) gameLoopRaf = requestAnimationFrame(gameLoop);
+  }
+});
 let gameLoopRaf=null;
 function gameLoop(ts){
   if(!gameRunning||gamePaused)return;
@@ -7076,13 +6986,27 @@ function gameLoop(ts){
     if(c._squished&&c.id!=='drreflex')continue;
     if(!_entitiesActive&&c.id!=='baldi')continue;
     // In multiplayer: only the host runs AI, guests use synced positions
-    if((_mpConnected||_mpWsReady)&&!_mpIsHost)continue;
+    if((_mpConnected||_mpWsReady)&&!_mpIsHost){
+      // Interpolate toward the synced target position (smooth, no teleport)
+      if(c._tx!==undefined){
+        const lf=Math.min(1, 0.25+dt*8); // adaptive lerp — faster when further
+        const dist=Math.hypot(c._tx-c.x, c._ty-c.y);
+        const actualLf=dist>2?0.6:lf; // snap if too far behind
+        c.x+=(c._tx-c.x)*actualLf;
+        c.y+=(c._ty-c.y)*actualLf;
+        // Dead-reckoning: project forward using speed to reduce lag feel
+        if(c._speed&&dist<0.5){
+          c.x+=Math.cos(c.angle||0)*c._speed*dt*0.4;
+          c.y+=Math.sin(c.angle||0)*c._speed*dt*0.4;
+        }
+      }
+      continue;
+    }
     c.update(dt);
   }
   updateSodaParticles(dt);
   if(_vendCooldown>0)_vendCooldown=Math.max(0,_vendCooldown-dt);
   if(!darkMode)checkBananaPeels();
-  if(!darkMode&&_entitiesActive)checkFacultyTrespass();
 
   // Boss systems
   if(BOSS.active){
@@ -7337,8 +7261,8 @@ function startDarkMode(){
   document.getElementById('notebooks').textContent='📓 0 / 7';
   document.getElementById('msg').style.opacity='0';
   document.getElementById('jumpscare').style.display='none';
-  document.getElementById('detention-hud').style.display='none';
-  document.getElementById('detention-count').style.display='none';
+  const _dh=document.getElementById('detention-hud');if(_dh)_dh.style.display='none';
+  /* detention-count removed */
   document.getElementById('ytp-display').style.display='none';document.getElementById('money-display').style.display='none';
   document.getElementById('mode-badge').textContent='🌑 DARK MODE';
   document.getElementById('mode-badge').style.display='block';
@@ -7350,7 +7274,7 @@ function startDarkMode(){
   initLeftHand();showLeftHand();
   selectSlot(0);
   stopAllMusic();
-  playBossAmbient();
+  // Dark mode is silent — no music
   updateBatteryHUD();
   lastTime=performance.now();
   document.getElementById('game').requestPointerLock();
@@ -7381,6 +7305,52 @@ let _mpConnected = false;
 let _mpSendTimer = 0;
 let _mpHeartbeatTimer = 0;
 let _mpEntityTimer = 0;
+let _mpEntitySyncInterval = null;
+
+// Start entity sync — runs independently of tab focus for host
+function _mpStartEntitySync(){
+  if(_mpEntitySyncInterval) clearInterval(_mpEntitySyncInterval);
+  _mpEntitySyncInterval = setInterval(()=>{
+    if(!_mpIsHost||!_mpConnected||!chars||!chars.length) return;
+    const snap=chars
+      .filter(c=>c.floor===currentFloor||c.id==='baldi')
+      .map(c=>({
+        id:c.id,
+        x:Math.round(c.x*100)/100,
+        y:Math.round(c.y*100)/100,
+        angle:Math.round((c.angle||0)*100)/100,
+        state:c.state||'wander',
+        speed:Math.round((c.speed||0)*100)/100,
+        nh:c.notebooksHeard||0,
+        pt:Math.round((c.pauseTimer||0)*10)/10,
+        rope:!!(c.roping),
+        sad:!!(c.sad),
+        eating:c._eating>0,
+        visible:c.visible!==false
+      }));
+    _mpBroadcast({type:'entities',snap,ea:_entitiesActive?1:0});
+  }, 100); // 10hz
+}
+
+// Standalone host AI tick that runs even when tab is in background
+let _mpHostAIInterval = null;
+function _mpStartHostAI(){
+  if(_mpHostAIInterval) clearInterval(_mpHostAIInterval);
+  let lastAITime = performance.now();
+  _mpHostAIInterval = setInterval(()=>{
+    if(!gameRunning||gamePaused||!_mpIsHost) return;
+    if(document.visibilityState!=='hidden') return; // only needed when hidden, game loop handles visible
+    const now=performance.now();
+    const dt=Math.min((now-lastAITime)/1000, 0.05);
+    lastAITime=now;
+    // Run AI updates even when tab is hidden
+    for(const c of chars){
+      if(c._squished&&c.id!=='drreflex') continue;
+      if(!_entitiesActive&&c.id!=='baldi') continue;
+      c.update(dt);
+    }
+  }, 50); // 20hz AI tick when in background
+}
 let _mpSpectating = false;
 let _mpVoteEl = null;
 let _mpSpectateTarget = null;
@@ -7592,9 +7562,15 @@ function _mpHandleMsg(fromId, data){
   if(_mpRemotePlayers[fromId]) _mpRemotePlayers[fromId]._lastSeen=Date.now();
   if(data.type==='pos'){
     if(!_mpRemotePlayers[fromId])
-      _mpRemotePlayers[fromId]={id:fromId,color:data.color||'#fff',name:data.name||fromId,_lastSeen:Date.now()};
+      _mpRemotePlayers[fromId]={id:fromId,color:data.color||'#fff',name:data.name||fromId,_lastSeen:Date.now(),
+        x:data.x,y:data.y,angle:data.angle,_tx:data.x,_ty:data.y,_ta:data.angle};
+    else{
+      // Update interpolation targets — don't snap directly
+      _mpRemotePlayers[fromId]._tx=data.x;
+      _mpRemotePlayers[fromId]._ty=data.y;
+      _mpRemotePlayers[fromId]._ta=data.angle;
+    }
     Object.assign(_mpRemotePlayers[fromId],{
-      x:data.x,y:data.y,angle:data.angle,
       _dead:data.dead,_spectating:data.spectating,
       notebooks:data.notebooks||0,
       color:data.color||_mpRemotePlayers[fromId].color,
@@ -7728,21 +7704,26 @@ function _mpHandleMsg(fromId, data){
     const b=chars.find(c=>c.id==='baldi');
     if(b&&data.speed>b.speed) b.speed=data.speed;
   } else if(data.type==='entities'){
-    // Guests: apply host entity positions directly (no local AI running)
+    // Guests: apply host entity positions — set interpolation targets
     if(!_mpIsHost&&chars&&data.snap){
       for(const s of data.snap){
         const c=chars.find(c=>c.id===s.id);
         if(!c)continue;
-        c.x=s.x;
-        c.y=s.y;
+        // Set interpolation targets (smooth movement, no teleport)
+        c._tx=s.x; c._ty=s.y;
+        // Apply angle and state directly (no interpolation needed)
         c.angle=s.angle;
         if(s.state!==undefined) c.state=s.state;
         if(s.speed!==undefined) c.speed=s.speed;
-        if(s.notebooksHeard!==undefined) c.notebooksHeard=s.notebooksHeard;
-        if(s.pauseTimer!==undefined) c.pauseTimer=s.pauseTimer;
-        if(s.roping!==undefined&&c.roping!==undefined) c.roping=s.roping;
+        // Shortened keys
+        if(s.nh!==undefined) c.notebooksHeard=s.nh;
+        if(s.pt!==undefined) c.pauseTimer=s.pt;
+        if(s.rope!==undefined&&c.roping!==undefined) c.roping=s.rope;
+        if(s.sad!==undefined&&c.sad!==undefined) c.sad=s.sad;
+        if(s.eating!==undefined&&c._eating!==undefined) c._eating=s.eating?1:0;
+        if(s.visible!==undefined&&c.visible!==undefined) c.visible=s.visible;
       }
-      if(data.entitiesActive!==undefined) _entitiesActive=data.entitiesActive;
+      if(data.ea!==undefined) _entitiesActive=!!data.ea;
     }
   } else if(data.type==='lobby_pong'){
     // Room browser probe response — update live if scanning
@@ -7820,6 +7801,9 @@ function mpStartGame(){
   // Start the game first so worldItems/notebooks are built
   if(_mpEl)_mpEl.style.display='none';
   startGame(false);
+  // Start standalone entity sync and background AI (survive tab switching)
+  _mpStartEntitySync();
+  _mpStartHostAI();
   // Now broadcast start WITH the item layout so guests build the same world
   const itemLayout=worldItems.map(i=>({type:i.type,icon:i.icon,name:i.name,x:i.x,y:i.y}));
   _mpBroadcast({type:'start',players:count,password:_mpRoomPassword||'',itemLayout});
@@ -8168,39 +8152,46 @@ function _updateVoteTally(){
 
 // Send position every tick + heartbeat for disconnect detection
 function _mpTick(dt){
-  if(!_mpConnected&&!_mpWsReady&&!_mpBC)return;
+  const connected=_mpConnected||_mpWsReady||!!_mpBC;
+  if(!connected)return;
+
+  // ── Position broadcast (20hz, always once connected) ──────────────
   _mpSendTimer+=dt;
   if(_mpSendTimer>0.05){
     _mpSendTimer=0;
-    _mpBroadcast({type:'pos',x:player.x,y:player.y,angle:player.angle,
+    _mpBroadcast({type:'pos',
+      x:Math.round(player.x*100)/100,
+      y:Math.round(player.y*100)/100,
+      angle:Math.round(player.angle*100)/100,
       dead:_mpSpectating,spectating:_mpSpectating,
       notebooks:notebookCount,color:_mpMyColor,name:_mpMyName});
   }
 
-  // Entity sync — host broadcasts all character positions at 20hz
-  if(_mpIsHost&&chars&&chars.length){
-    _mpEntityTimer+=dt;
-    if(_mpEntityTimer>=0.05){
-      _mpEntityTimer=0;
-      const snap=chars.map(c=>({id:c.id,x:c.x,y:c.y,angle:c.angle||0,
-        state:c.state||'wander',speed:c.speed||0,
-        notebooksHeard:c.notebooksHeard||0,
-        pauseTimer:c.pauseTimer||0,
-        roping:c.roping||false}));
-      _mpBroadcast({type:'entities',snap,entitiesActive:_entitiesActive});
-    }
+  // ── Entity sync — handled by standalone interval (_mpStartEntitySync) ──
+
+  // ── Smooth interpolation for remote players ────────────────────────
+  for(const id in _mpRemotePlayers){
+    const rp=_mpRemotePlayers[id];
+    if(rp._tx===undefined){rp._tx=rp.x||0;rp._ty=rp.y||0;rp._ta=rp.angle||0;}
+    // Lerp toward target position
+    const spd=0.25;
+    rp.x=rp.x!==undefined?(rp.x+(rp._tx-rp.x)*spd):rp._tx;
+    rp.y=rp.y!==undefined?(rp.y+(rp._ty-rp.y)*spd):rp._ty;
+    // Angle lerp (wrap-safe)
+    let da=(rp._ta-(rp.angle||0));
+    while(da>Math.PI)da-=Math.PI*2;while(da<-Math.PI)da+=Math.PI*2;
+    rp.angle=(rp.angle||0)+da*spd;
   }
 
-  // Heartbeat every 3s — also used to detect disconnects
+  // ── Heartbeat + disconnect detection (every 4s) ────────────────────
   _mpHeartbeatTimer+=dt;
-  if(_mpHeartbeatTimer>3){
+  if(_mpHeartbeatTimer>4){
     _mpHeartbeatTimer=0;
-    _mpBroadcast({type:'hb'});
-    // Check for stale players (no message in 8s = disconnected)
+    if(_mpConnected) _mpBroadcast({type:'hb'});
     const now=Date.now();
     for(const id in _mpRemotePlayers){
       const rp=_mpRemotePlayers[id];
-      if(rp._lastSeen&&now-rp._lastSeen>8000){
+      if(rp._lastSeen&&now-rp._lastSeen>10000){
         mpChatLog('🔔',`${rp.name||id} disconnected`,'#f80');
         delete _mpRemotePlayers[id];
         if(_mpSpectateTarget===id) _mpSpectateSwitch(1);
@@ -8464,8 +8455,8 @@ function startGame(endless=false){
   document.getElementById('notebooks').textContent='📓 0 / 7';
   document.getElementById('msg').style.opacity='0';
   document.getElementById('jumpscare').style.display='none';
-  document.getElementById('detention-hud').style.display='none';
-  document.getElementById('detention-count').style.display='none';
+  const _dh=document.getElementById('detention-hud');if(_dh)_dh.style.display='none';
+  /* detention-count removed */
   document.getElementById('ytp-display').style.display='block';document.getElementById('money-display').style.display='block';
   document.getElementById('mode-badge').style.display=endless?'block':'none';
   document.getElementById('store-hud').style.display='none';
