@@ -643,7 +643,7 @@ function makeFloor1(){
   room(12,33,22,43); fill(15,31,17,32,0); m[33][17]=9;
 
   // ── ART ROOM & MUSIC ROOM — south section ──
-  // Art Room: x=27..36, y=33..43
+  // Janitor's Room: x=27..36, y=33..43
   room(27,33,36,43);
   fill(30,31,32,32,0); m[33][31]=9;   // north door (from south spur corridor)
   // Short south corridor to bottom of map open area
@@ -808,8 +808,9 @@ function buildMap(floorIdx){
     {wx:14,wy:35,type:'abc'},{wx:19,wy:35,type:'smiley'},     // Class 8
     {wx:40,wy:35,type:'lunch'},{wx:45,wy:37,type:'smiley'},   // Cafeteria
     {wx:8,wy:19,type:'heart'},{wx:22,wy:23,type:'numbers'},   // Hallway spots
+    {wx:11,wy:19,type:'not_school_box'},{wx:11,wy:20,type:'not_school_box'},  // This is not a school box
     {wx:30,wy:23,type:'star'},{wx:34,wy:23,type:'flower'},      // Library (former Fac 1)
-    {wx:30,wy:35,type:'abc'},{wx:34,wy:37,type:'smiley'},       // Art Room
+    {wx:30,wy:35,type:'janitor_sign'},{wx:33,wy:36,type:'janitor_sign'}, // Janitor's Room
   ];
   for(const d of _drawingSpots) worldDrawings.push(d);
   // Faculty room signs — placed inside each faculty room near the door
@@ -1634,7 +1635,7 @@ function makeBully(){return{
 };}
 
 function makeGottaSweep(){return{
-  id:'sweep',x:25,y:22,angle:Math.PI/2,floor:0,
+  id:'sweep',x:31.5,y:38.5,angle:Math.PI/2,floor:0,
   speed:3.5,dir:[1,0],_shown:false,
   update(dt){
     if(this.floor!==currentFloor)return;
@@ -2610,13 +2611,59 @@ const EVENTS=[
     remove(){this._saved.forEach(({c,spd})=>c.speed=spd);this._saved=[];}
   },
   {
-    name:'💥 Baldi Rage!',duration:12,
-    _savedSpd:0,
+    name:'🙈 Hide and Seek!',duration:30,
+    _savedSpd:0,_savedRuler:false,_hideTick:0,
+    _lockedLockers:[],_openLocker:null,_won:false,
     apply(){
       const b=chars.find(c=>c.id==='baldi');
-      if(b){this._savedSpd=b.speed;b.speed=b.speed*2.8;b.state='chase';b.pauseTimer=0;}
+      if(b){this._savedSpd=b.speed;b.speed=b.speed*2.4;b.state='chase';b.pauseTimer=0;}
+      this._won=false;this._hideTick=0;
+      // Find all blue locker positions on MAP
+      const bluePos=[];
+      for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(MAP[y][x]===T.LOCK_B)bluePos.push({x,y});
+      // Pick ONE random blue locker to leave open; block the rest
+      if(bluePos.length>0){
+        const pick=bluePos[Math.floor(Math.random()*bluePos.length)];
+        this._openLocker={x:pick.x,y:pick.y};
+        this._lockedLockers=bluePos.filter(p=>!(p.x===pick.x&&p.y===pick.y));
+        // Turn blocked lockers to red (LOCK_R) temporarily
+        for(const p of this._lockedLockers) MAP[p.y][p.x]=T.LOCK_R;
+      }
+      showMsg('🙈 HIDE AND SEEK! ONE blue locker is open — hide before Baldi finds you!',5000);
     },
-    remove(){const b=chars.find(c=>c.id==='baldi');if(b&&this._savedSpd)b.speed=this._savedSpd;}
+    tick(dt){
+      if(this._won)return;
+      this._hideTick+=dt;
+      // Check: player is hiding in the open locker
+      if(player.inLocker){
+        // They hid! Success after 2 seconds inside
+        if(this._hideTick>2){
+          this._won=true;
+          const b=chars.find(c=>c.id==='baldi');
+          if(b){b.state='wander';b.pauseTimer=8;b.speed=this._savedSpd;}
+          showMsg('😊 Baldi: "Great job! You hid from me! ...I\'ll find you next time."',5000);
+          // Unlock all lockers immediately
+          for(const p of this._lockedLockers) MAP[p.y][p.x]=T.LOCK_B;
+          this._lockedLockers=[];
+          ytpPoints+=25;updateYTPUI();
+          showEventBanner('🎉 You hid successfully! +25 YTP');
+        }
+      } else {
+        this._hideTick=0; // reset — they must stay hidden
+      }
+    },
+    remove(){
+      const b=chars.find(c=>c.id==='baldi');
+      if(b&&this._savedSpd&&!this._won)b.speed=this._savedSpd;
+      // Always restore lockers on event end
+      for(const p of this._lockedLockers) MAP[p.y][p.x]=T.LOCK_B;
+      this._lockedLockers=[];
+      if(player.inLocker&&!this._won){
+        // Time ran out while hiding — free them
+        player.inLocker=false;
+        const lh=document.getElementById('locker-hud');if(lh)lh.style.display='none';
+      }
+    }
   },
   {
     name:'🎀 Party Time!',duration:8,
@@ -2670,6 +2717,63 @@ const EVENTS=[
       showMsg(`💸 Cash drop! You found $${bonus}!`,3000);
     },
     remove(){}
+  },
+  {
+    name:'🧹 SWEEP FRENZY!',duration:14,
+    apply(){
+      const sw=chars.find(c=>c.id==='sweep');
+      if(sw){this._savedSpd=sw.speed;sw.speed=sw.speed*2.2;}
+      showMsg('🧹 Gotta Sweep is in a FRENZY! He\'s moving twice as fast!',3500);
+    },
+    _savedSpd:3.5,
+    remove(){const sw=chars.find(c=>c.id==='sweep');if(sw)sw.speed=this._savedSpd;}
+  },
+  {
+    name:'🔒 Locker Lockdown!',duration:12,
+    apply(){
+      // All lockers become red — no hiding!
+      for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)
+        if(MAP[y][x]===T.LOCK_B||MAP[y][x]===T.LOCK_G)this._changed.push({x,y,was:MAP[y][x]}),MAP[y][x]=T.LOCK_R;
+      showMsg('🔒 LOCKER LOCKDOWN! All lockers are sealed for 12 seconds!',3500);
+    },
+    _changed:[],
+    remove(){
+      for(const e of this._changed)MAP[e.y][e.x]=e.was;
+      this._changed=[];
+    }
+  },
+  {
+    name:'🎒 Supply Drop!',duration:0,
+    apply(){
+      const gifts=[
+        {type:'bsoda',icon:'🥤',name:'BSoda'},
+        {type:'clock',icon:'⏰',name:'Alarm Clock'},
+        {type:'whistle',icon:'📯',name:"Principal's Whistle"},
+        {type:'tape',icon:'🩹',name:'Anti-Hearing Tape'},
+        {type:'grapple',icon:'🪝',name:'Grappling Hook'},
+      ];
+      let given=0;
+      for(let i=0;i<2;i++){
+        const slot=player.items.findIndex(s=>s===null);
+        if(slot>=0){
+          const g=gifts[Math.floor(Math.random()*gifts.length)];
+          player.items[slot]={...g};given++;
+        }
+      }
+      updateItemHUD();
+      showMsg(given>0?`🎒 Supply drop! You got ${given} item(s)!`:'🎒 Supply drop — but your pockets are full!',3000);
+    },
+    remove(){}
+  },
+  {
+    name:'🏃 Principal Patrol!',duration:15,
+    apply(){
+      const pr=chars.find(c=>c.id==='principal');
+      if(pr){this._savedSpd=pr?pr.speed:2;pr.speed=(pr.speed||2)*1.8;}
+      showMsg('🏃 The Principal is on HIGH ALERT — no running at all!',3000);
+    },
+    _savedSpd:2,
+    remove(){const pr=chars.find(c=>c.id==='principal');if(pr)pr.speed=this._savedSpd;}
   },
 ];
 let currentEvent=null,eventTimer=0,eventInterval=null;
@@ -3259,6 +3363,34 @@ function drawWallDrawing(ctx,w,h,type){
     ctx.fillText('🏀',cx,cy+h*.1);
     ctx.fillStyle='rgba(200,230,255,0.7)';ctx.font=`${w*.1|0}px "Comic Sans MS",cursive`;
     ctx.fillText('P.E. classes here',cx,cy+h*.36);
+  } else if(type==='janitor_sign'){
+    // Janitor's room sign — grey background, mop icon
+    ctx.fillStyle='#555';
+    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.06);ctx.fill();
+    ctx.strokeStyle='#aaa';ctx.lineWidth=Math.max(1.5,w*.035);
+    ctx.beginPath();ctx.roundRect(w*.04,h*.08,w*.92,h*.84,w*.06);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font=`bold ${w*.14|0}px "Comic Sans MS",cursive`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText("JANITOR'S",cx,cy-h*.18);
+    ctx.fillText('ROOM',cx,cy-h*.02);
+    ctx.font=`${w*.22|0}px serif`;ctx.fillText('🧹',cx,cy+h*.26);
+  } else if(type==='not_school_box'){
+    // Repeating "This is not a school" sign — white background, dense text
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.roundRect(w*.02,h*.04,w*.96,h*.92,w*.04);ctx.fill();
+    ctx.strokeStyle='#222';ctx.lineWidth=Math.max(1,w*.03);
+    ctx.beginPath();ctx.roundRect(w*.02,h*.04,w*.96,h*.92,w*.04);ctx.stroke();
+    ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='top';
+    const phrase='THIS IS NOT A SCHOOL ';
+    const fs=Math.max(5,w*.085|0);
+    ctx.font=`bold ${fs}px "Comic Sans MS",cursive`;
+    const lineH=fs*1.15;
+    const lines=Math.ceil(h*.84/lineH);
+    for(let i=0;i<lines;i++){
+      // offset each line so text feels wall-to-wall
+      const off=(i%2)*phrase.length*0.5;
+      ctx.fillText(phrase.repeat(4).slice(off,off+32),cx,h*.06+i*lineH);
+    }
   }
   ctx.restore();
 }
@@ -4925,20 +5057,13 @@ function movePlayer(dt){
 //  JONATHAN — always spawns on Floor 0, gives items, E to shop
 // ═══════════════════════════════════════════════════════════════════
 function makeJonathan(){return{
-  id:'jonathan',x:28,y:24,angle:0,floor:0,
+  id:'jonathan',x:24.5,y:10,angle:0,floor:0,
   speed:1.0,wanderDir:[1,0],wanderTimer:0,promptShown:false,giftTimer:30,
   _hiding:false, // dark mode: hides behind boxes
   update(dt){
     if(this.floor!==currentFloor)return;
     const dist=Math.hypot(player.x-this.x,player.y-this.y);
-    // Dark mode: hide behind Faculty 2 boxes
-    if(darkMode&&!this._hiding){
-      this._hiding=true;
-      this.x=31.5;this.y=38.5; // behind the cult note box
-      showMsg('🎩 (You hear something rustling in the boxes...)',3000);
-    }
-    if(!darkMode) this._hiding=false;
-    if(!this._hiding) wanderUpdate(this,dt,this.speed);
+    wanderUpdate(this,dt,this.speed);
     // Periodic free item gifts
     this.giftTimer-=dt;
     if(this.giftTimer<=0){
@@ -6974,6 +7099,7 @@ function gameLoop(ts){
   tickExitSealing();
   tickGrapple(dt);
   tickDoorAnims(dt);
+  if(currentEvent&&currentEvent.tick)currentEvent.tick(dt);
   _mpTick(dt);
   // Tick squished state on all chars
   for(const c of chars){
